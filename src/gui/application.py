@@ -9,6 +9,7 @@ import webbrowser
 from datetime import datetime
 import os
 from processing.utils import resource_path
+from gui.dialogs import UserLoginDialog
 
 # Importar utilidades y procesadores
 from processing.utils import normalize_text, split_name
@@ -25,7 +26,8 @@ class Application(tb.Window):
         # Variables de datos
         self.df_original = None
         self.df_work = None
-        self.validator_name = None
+        #self.validator_name = None
+        self.logged_user = None  # Usuario registrado
         self.loaded_filename = ""
 
         # Cargar recursos (rutas relativas)
@@ -50,7 +52,7 @@ class Application(tb.Window):
         self.style.map('Treeview', background=[('selected', '#007bff')])
         
         self.crear_main_menu()
-        self.after(100, self.ask_validator_name)
+        self.after(100, self.login_user)
 
     def center_main_window(self):
         self.update_idletasks()
@@ -95,6 +97,7 @@ class Application(tb.Window):
         return Application.calcular_digito_verificador(base) == int(num[-1])
 
     # Diálogo de Nombre del Validador
+    """
     def ask_validator_name(self):
         dialog = NameDialog(self)
         self.wait_window(dialog)
@@ -103,7 +106,18 @@ class Application(tb.Window):
             self.destroy()
         else:
             self.validator_name = dialog.validator_name
+    """
+    
 
+    def login_user(self):
+        dialog = UserLoginDialog(self)
+        self.wait_window(dialog)
+        if not dialog.logged_user:
+            messagebox.showwarning("Advertencia", "Debe iniciar sesión para continuar.")
+            self.destroy()
+        else:
+            self.logged_user = dialog.logged_user
+    
     # Cargar y Procesar Excel
     def cargar_excel(self):
         ruta = filedialog.askopenfilename(
