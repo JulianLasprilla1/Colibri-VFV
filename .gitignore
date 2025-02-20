@@ -1,0 +1,14 @@
+# Ignorar archivos y carpetas de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar entornos virtuales
+env/
+venv/
+
+# Ignorar carpetas de compilación y distribución
+build/
+dist/
+*.egg-info/
