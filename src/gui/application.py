@@ -135,6 +135,37 @@ class Application(tb.Window):
         else:
             messagebox.showwarning("Advertencia", "No se ha cargado ningún archivo.")
 
+    def cargar_archivo_ml(self):
+        df = self.abrir_excel_ml()
+        if df is not None:
+            if "Observación" not in df.columns:
+                df["Observación"] = ""
+            self.df_original = df.copy()
+            self.df_work = df.copy()
+            if hasattr(self, 'menu_frame') and self.menu_frame.winfo_exists():
+                self.menu_frame.destroy()
+            self.inicializar_interfaz()
+        else:
+            messagebox.showwarning("Advertencia", "No se ha cargado ningún archivo.")
+
+    def abrir_excel_ml(self):
+        ruta = filedialog.askopenfilename(
+            title="Cargar archivo Mercado Libre",
+            filetypes=[("Archivos Excel", "*.xlsx *.xls")]
+        )
+        if ruta:
+            self.loaded_filename = os.path.basename(ruta)
+            try:
+                # Se usa header=5 porque los datos comienzan en la fila 6
+                df_local = pd.read_excel(ruta, header=5)
+                from processing.file_cleaner import MercadoLibreCleaner
+                cleaner = MercadoLibreCleaner()
+                df_local = cleaner.process(df_local)
+                return df_local
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al leer el archivo: {e}")
+        return None
+
     # Menú Principal Mejorado
     def crear_main_menu(self):
         self.menu_frame = ttk.Frame(self, padding=30)
@@ -155,14 +186,27 @@ class Application(tb.Window):
         subtitle_label.grid(row=1, column=0, pady=(0,20))
         button_frame = ttk.Frame(self.menu_frame)
         button_frame.grid(row=2, column=0, pady=(0,20))
+        
+        # Botón para Falabella
         btn_load = ttk.Button(
             button_frame,
-            text="📂 Falabella Fulfillment",
+            text="📂 Falabella",
             command=self.cargar_archivo,
             bootstyle="primary",
             width=30
         )
         btn_load.grid(row=0, column=0, padx=10, pady=10)
+        
+        # NUEVO: Botón para Mercado Libre
+        btn_ml = ttk.Button(
+            button_frame,
+            text="📂 Mercado Libre",
+            command=self.cargar_archivo_ml,
+            bootstyle="primary",
+            width=30
+        )
+        btn_ml.grid(row=0, column=1, padx=10, pady=10)
+        
         footer_label = ttk.Label(
             self.menu_frame,
             text="v1.0.0 | © 2025 by Julián Lasprilla",
@@ -170,6 +214,7 @@ class Application(tb.Window):
             bootstyle="secondary"
         )
         footer_label.grid(row=3, column=0, pady=(10,0))
+
 
     # Interfaz Principal: Cards y Treeview
     def inicializar_interfaz(self):
