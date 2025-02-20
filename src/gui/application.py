@@ -117,6 +117,7 @@ class Application(tb.Window):
             self.destroy()
         else:
             self.logged_user = dialog.logged_user
+            self.logged_user_code = dialog.logged_user_code
     
     # Cargar y Procesar Excel
     def cargar_excel(self):
@@ -537,7 +538,7 @@ class Application(tb.Window):
         self.df_work.loc[indice, "Tipo Documento"] = var_tipo.get().upper()
         if var_validado.get():
             self.df_work.loc[indice, "Validado"] = "SI"
-            self.df_work.loc[indice, "ValidadoPor"] = self.validator_name
+            self.df_work.loc[indice, "ValidadoPor"] = self.logged_user
             self.df_work.loc[indice, "FechaValidacion"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         else:
             self.df_work.loc[indice, "Validado"] = "NO"
@@ -564,7 +565,7 @@ class Application(tb.Window):
             return
 
         self.df_work.loc[indice, "Validado"] = "SI"
-        self.df_work.loc[indice, "ValidadoPor"] = self.validator_name
+        self.df_work.loc[indice, "ValidadoPor"] = self.logged_user
         self.df_work.loc[indice, "FechaValidacion"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if self.busqueda_var.get().strip():
             self.filtrar_registros()
@@ -580,101 +581,137 @@ class Application(tb.Window):
         webbrowser.open("https://antecedentes.policia.gov.co:7005/WebJudicial/")
 
     def guardar_datos(self):
+        # Verificar que todos los registros estén validados
         if (self.df_work["Validado"].str.upper() != "SI").any():
             messagebox.showwarning("Advertencia", "No se puede guardar el archivo final sin que todos los registros estén validados.")
             return
-        default_file_name = f"terceros_full_falabella_{self.validator_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        default_file_name = f"terceros_full_falabella_{self.logged_user}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         ruta_guardado = filedialog.asksaveasfilename(
             initialfile=default_file_name,
             defaultextension=".xlsx",
             filetypes=[("Archivos Excel", "*.xlsx *.xls")]
         )
-        if ruta_guardado:
-            try:
-                registros = []
-                for _, row in self.df_work.iterrows():
-                    tipo_doc = row["Tipo Documento"].strip().upper()
-                    if tipo_doc == "CC":
-                        tipo_identificacion = "C"
-                    elif tipo_doc == "NIT":
-                        tipo_identificacion = "N"
-                    else:
-                        tipo_identificacion = tipo_doc
-                    
-                    if tipo_identificacion == "C":
-                        tipo_tercero = "1"
-                        a1, a2, nombres = split_name(row["Shipping Name"])
-                        razon_social = ""
-                    elif tipo_identificacion == "N":
-                        tipo_tercero = "2"
-                        razon_social = row["Shipping Name"]
-                        a1, a2, nombres = "", "", ""
-                    else:
-                        tipo_tercero = ""
-                        razon_social = ""
-                        a1, a2, nombres = "", "", row["Shipping Name"]
-                    
-                    dept_nombre = normalize_text(row["Shipping Region"])
-                    dept_code = self.dept_codes.get(dept_nombre, "")
-                    
-                    if dept_code == "11":
+        if not ruta_guardado:
+            return
+
+        try:
+            terceros_records = []
+            clientes_records = []
+            validador_records = []
+            
+            for _, row in self.df_work.iterrows():
+                # Lógica de validación y extracción (la misma que ya tienes)
+                tipo_doc = row["Tipo Documento"].strip().upper()
+                if tipo_doc == "CC":
+                    tipo_identificacion = "C"
+                    tipo_tercero = "1"
+                    a1, a2, nombres = split_name(row["Shipping Name"])
+                    razon_social = ""
+                elif tipo_doc == "NIT":
+                    tipo_identificacion = "N"
+                    tipo_tercero = "2"
+                    razon_social = row["Shipping Name"]
+                    a1, a2, nombres = "", "", ""
+                else:
+                    tipo_identificacion = tipo_doc
+                    tipo_tercero = ""
+                    razon_social = ""
+                    a1, a2, nombres = "", "", row["Shipping Name"]
+                
+                dept_nombre = normalize_text(row["Shipping Region"])
+                dept_code = self.dept_codes.get(dept_nombre, "")
+                if dept_code == "11":
+                    municipio_code = "001"
+                else:
+                    muni_nombre = normalize_text(row["Shipping City"])
+                    municipio_code = ""
+                    if self.df_muni is not None and dept_code:
+                        df_filtered = self.df_muni[self.df_muni["MUNICIPIO"] == muni_nombre]
+                        if not df_filtered.empty:
+                            for _, muni_row in df_filtered.iterrows():
+                                codigo_muni = str(muni_row["CODIGO"]).zfill(5)
+                                if codigo_muni.startswith(dept_code):
+                                    municipio_code = codigo_muni[-3:]
+                                    break
+                    if municipio_code == "" and muni_nombre in ["BOGOTA", "BOGOTA DC"]:
                         municipio_code = "001"
-                    else:
-                        muni_nombre = normalize_text(row["Shipping City"])
-                        municipio_code = ""
-                        if self.df_muni is not None and dept_code:
-                            df_filtered = self.df_muni[self.df_muni["MUNICIPIO"] == muni_nombre]
-                            if not df_filtered.empty:
-                                for _, muni_row in df_filtered.iterrows():
-                                    codigo_muni = str(muni_row["CODIGO"]).zfill(5)
-                                    if codigo_muni.startswith(dept_code):
-                                        municipio_code = codigo_muni[-3:]
-                                        break
-                        if municipio_code == "" and muni_nombre in ["BOGOTA", "BOGOTA DC"]:
-                            municipio_code = "001"
-                    
-                    pais_codigo = "169"
-                    
-                    tel = str(row.get("telefono", "")).strip()
-                    if not tel or tel.lower() == "nan":
-                        tel = "7559242"
-                    cel = str(row.get("celular", "")).strip()
-                    if not cel or cel.lower() == "nan":
-                        cel = "6017559242"
-                    corr = str(row["Customer Email"]).strip()
-                    if corr.lower() == "nan" or corr == "":
-                        corr = "facturann@jd-market.com"
-                    
-                    registro = {
-                        "identificacion_tercero": str(row["Documento Val"]),
-                        "numero_identificacion_tercero": str(row["Documento Val"]),
-                        "tipo_identificacion": tipo_identificacion,
-                        "tipo_tercero_natural_1_juridica_2": tipo_tercero,
-                        "razon_social": razon_social,
-                        "apellido_1": a1,
-                        "apellido_2": a2,
-                        "nombres": nombres,
-                        "contacto_nombre_completo_razon_social": row["Shipping Name"],
-                        "direccion": row["Shipping Address"],
-                        "pais_codigo": pais_codigo,
-                        "departamento_codigo": dept_code,
-                        "ciudad_codigo": municipio_code,
-                        "telefono": tel,
-                        "correo": corr,
-                        "no_domiciliado_pais_1_si_0_no": "0",
-                        "celular": cel,
-                        "ValidadoPor": row["ValidadoPor"],
-                        "FechaValidacion": row["FechaValidacion"],
-                        "Observación": str(row.get("Observación", ""))[:100]
-                    }
-                    registros.append(registro)
-                df_guardar = pd.DataFrame(registros)
-                for col in df_guardar.columns:
-                    df_guardar[col] = df_guardar[col].astype(str)
-                df_guardar.to_excel(ruta_guardado, index=False)
-                messagebox.showinfo("Éxito", "Datos guardados exitosamente.")
-            except Exception as e:
-                messagebox.showerror("Error", f"Error al guardar el archivo: {e}")
+                
+                pais_codigo = "169"
+                tel = str(row.get("telefono", "")).strip()
+                if not tel or tel.lower() == "nan":
+                    tel = "7559242"
+                cel = str(row.get("celular", "")).strip()
+                if not cel or cel.lower() == "nan":
+                    cel = "6017559242"
+                corr = str(row["Customer Email"]).strip()
+                if corr.lower() == "nan" or corr == "":
+                    corr = "facturann@jd-market.com"
+                
+                # Registro para la hoja Terceros
+                tercero = {
+                    "identificacion_tercero": str(row["Documento Val"]),
+                    "numero_identificacion_tercero": str(row["Documento Val"]),
+                    "tipo_identificacion": tipo_identificacion,
+                    "tipo_tercero_natural_1_juridica_2": tipo_tercero,
+                    "razon_social": razon_social,
+                    "apellido_1": a1,
+                    "apellido_2": a2,
+                    "nombres": nombres,
+                    "contacto_nombre_completo_razon_social": row["Shipping Name"],
+                    "direccion": row["Shipping Address"],
+                    "pais_codigo": pais_codigo,
+                    "departamento_codigo": dept_code,
+                    "ciudad_codigo": municipio_code,
+                    "telefono": tel,
+                    "correo": corr,
+                    "no_domiciliado_pais_si_1_no_0": "0",
+                    "celular": cel
+                }
+                terceros_records.append(tercero)
+                
+
+                # Registro para la hoja clientes
+                cliente = {
+                    "identificacion_tercero": tercero["identificacion_tercero"],
+                    # Para clientes, se usa el valor de contacto_nombre_completo_razon_social como razon_social
+                    "razon_social": tercero["contacto_nombre_completo_razon_social"],
+                    "codigo_vendedor": self.logged_user_code,
+                    "contacto_nombre_completo_razon_social": tercero["contacto_nombre_completo_razon_social"],
+                    "direccion": tercero["direccion"],
+                    "pais_codigo": tercero["pais_codigo"],
+                    "departamento_codigo": tercero["departamento_codigo"],
+                    "ciudad_codigo": tercero["ciudad_codigo"],
+                    "telefono": tercero["telefono"],
+                    "correo": tercero["correo"],
+                    "fecha_ingreso_aaaammdd": datetime.now().strftime("%Y%m%d")
+                }
+                clientes_records.append(cliente)
+                
+                # Registro para la hoja Validador
+                validador = {
+                    "numero_identificacion_tercero": str(row["Documento Val"]),
+                    "ValidadoPor": row.get("ValidadoPor", ""),
+                    "FechaValidacion": row.get("FechaValidacion", ""),
+                    "Observación": str(row.get("Observación", ""))
+                }
+                validador_records.append(validador)
+            
+            import pandas as pd
+            df_terceros = pd.DataFrame(terceros_records)
+            df_clientes = pd.DataFrame(clientes_records)
+            df_validador = pd.DataFrame(validador_records)
+            
+            # Escribir el archivo Excel con tres hojas
+            with pd.ExcelWriter(ruta_guardado, engine='openpyxl') as writer:
+                df_terceros.to_excel(writer, sheet_name="Terceros", index=False)
+                df_clientes.to_excel(writer, sheet_name="Clientes", index=False)
+                df_validador.to_excel(writer, sheet_name="Validador", index=False)
+            
+            messagebox.showinfo("Éxito", "Datos guardados exitosamente.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al guardar el archivo: {e}")
+
 
     def regresar_menu(self):
         for widget in self.winfo_children():

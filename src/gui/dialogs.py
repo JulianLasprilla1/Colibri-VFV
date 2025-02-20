@@ -155,9 +155,12 @@ class UserLoginDialog(tk.Toplevel):
             return
         if password == stored_password:
             self.logged_user = selected
+            # Extraemos el código del vendedor del registro del usuario
+            self.logged_user_code = user_record.iloc[0].get("CodigoVendedor", "")
             self.destroy()
         else:
             messagebox.showerror("Error", "Contraseña incorrecta.")
+
 
     def on_register(self):
         reg_dialog = UserRegistrationDialog(self)
@@ -190,6 +193,10 @@ class UserRegistrationDialog(tk.Toplevel):
         ttk.Label(container, text="Confirmar Contraseña:", font=("Helvetica", 10)).pack(pady=5)
         self.confirm_entry = ttk.Entry(container, show="*", width=30)
         self.confirm_entry.pack(pady=5)
+        
+        ttk.Label(container, text="Código del vendedor:", font=("Helvetica", 10)).pack(pady=5)
+        self.vendedor_entry = ttk.Entry(container, width=30)
+        self.vendedor_entry.pack(pady=5)
 
         btn_frame = ttk.Frame(container)
         btn_frame.pack(pady=10)
@@ -201,7 +208,7 @@ class UserRegistrationDialog(tk.Toplevel):
     def center_window(self, parent):
         parent.update_idletasks()
         width = 400
-        height = 300
+        height = 400
         x = parent.winfo_rootx() + (parent.winfo_width() - width) // 2
         y = parent.winfo_rooty() + (parent.winfo_height() - height) // 2
         self.geometry(f"{width}x{height}+{x}+{y}")
@@ -210,28 +217,30 @@ class UserRegistrationDialog(tk.Toplevel):
         name = self.name_entry.get().strip()
         password = self.password_entry.get().strip()
         confirm = self.confirm_entry.get().strip()
+        codigo_vendedor = self.vendedor_entry.get().strip()
+        
         if not name or len(name.split()) != 2:
             messagebox.showwarning("Error", "Ingrese el nombre y apellido (exactamente dos palabras).")
             return
         if password == "" or password != confirm:
             messagebox.showwarning("Error", "Las contraseñas no coinciden o están vacías.")
             return
+
         encrypted = encrypt_password(password)
-        # Registro: por defecto, rol "Usuario" y la fecha actual
+        # Registro: rol "Usuario", se agrega Código del vendedor y la fecha actual
         registro = {
             "Nombre": name.upper(),
             "Password": encrypted,
             "Rol": "Usuario",
+            "CodigoVendedor": codigo_vendedor,
             "FechaModificacion": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        # Intentar cargar el archivo de usuarios; si no existe, crearlo
-        import pandas as pd
-        import os
+        # Intentar cargar el archivo de usuarios; si no existe, crearlo con las columnas correctas
         if os.path.exists(USERS_FILE):
             df = pd.read_excel(USERS_FILE)
         else:
-            df = pd.DataFrame(columns=["Nombre", "Password", "Rol", "FechaModificacion"])
-        # Agregar el nuevo registro y guardar
+            df = pd.DataFrame(columns=["Nombre", "Password", "Rol", "CodigoVendedor", "FechaModificacion"])
+        # Agregar el nuevo registro usando pd.concat
         df = pd.concat([df, pd.DataFrame([registro])], ignore_index=True)
         try:
             os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
