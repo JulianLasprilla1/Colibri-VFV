@@ -3,9 +3,9 @@
 
 a = Analysis(
     ['src\\main.py'],
-    pathex=['src'],
+    pathex=[],
     binaries=[],
-    datas=[('resources\\codigos_municipios', 'resources\\codigos_municipios')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,5 +35,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['resources\\colibri.ico'],
 )
