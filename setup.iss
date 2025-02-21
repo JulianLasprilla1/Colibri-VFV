@@ -3,14 +3,14 @@
 ; ---------------------------------------------------------------------------
 
 [Setup]
-AppName=Colibrí-VFV JD
-AppVersion=1.0.0
+AppName=Colibrí-VFV
+AppVersion=1.1.0
 ; Directorio predeterminado de instalación: usa {pf} para Program Files
-DefaultDirName={pf}\Colibrí-VFV_JD
+DefaultDirName={pf}\Colibrí-VFV
 ; Grupo de menú de inicio
-DefaultGroupName=Colibrí-VFV JD
+DefaultGroupName=Colibrí-VFV
 ; Nombre del archivo instalador de salida
-OutputBaseFilename=Colibrí-VFV_JD_Instalador
+OutputBaseFilename=Colibrí-VFV_Instalador
 Compression=lzma
 SolidCompression=yes
 ; Ruta del icono que se usará para el instalador
@@ -24,9 +24,9 @@ Source: "resources\codigos_municipios\*"; DestDir: "{app}\resources\codigos_muni
 
 [Icons]
 ; Crear acceso directo en el menú de inicio
-Name: "{group}\Colibrí-VFV JD"; Filename: "{app}\main.exe"
+Name: "{group}\Colibrí-VFV"; Filename: "{app}\main.exe"
 ; Crear acceso directo en el escritorio (esta tarea se activa o desactiva según el usuario)
-Name: "{userdesktop}\Colibrí-VFV JD"; Filename: "{app}\main.exe"; Tasks: desktopicon
+Name: "{userdesktop}\Colibrí-VFV"; Filename: "{app}\main.exe"; Tasks: desktopicon
 
 [Tasks]
 ; Tarea opcional para crear un acceso directo en el escritorio (desactivada por defecto)
@@ -34,4 +34,4 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el escritorio"; Fl
 
 [Run]
 ; Ejecutar la aplicación al finalizar la instalación (opcional)
-Filename: "{app}\main.exe"; Description: "Ejecutar Colibrí-VFV JD"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\main.exe"; Description: "Ejecutar Colibrí-VFV"; Flags: nowait postinstall skipifsilent

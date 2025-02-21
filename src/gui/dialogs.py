@@ -20,6 +20,12 @@ class NameDialog(tb.Toplevel):
         self.transient(parent)
         self.validator_name = None
 
+        # Establecer el ícono de la ventana emergente
+        import os
+        from processing.utils import resource_path
+        icon_path = resource_path(os.path.join("resources", "colibri.ico"))
+        self.iconbitmap(icon_path)
+
         container = ttk.Frame(self, padding=15)
         container.pack(fill='both', expand=True)
 
@@ -86,6 +92,12 @@ class UserLoginDialog(tk.Toplevel):
         self.resizable(False, False)
         self.transient(parent)
         self.logged_user = None
+        
+        # Establecer el ícono de la ventana emergente
+        import os
+        from processing.utils import resource_path
+        icon_path = resource_path(os.path.join("resources", "colibri.ico"))
+        self.iconbitmap(icon_path)
 
         container = ttk.Frame(self, padding=15)
         container.pack(fill='both', expand=True)
@@ -179,6 +191,12 @@ class UserRegistrationDialog(tk.Toplevel):
         self.resizable(False, False)
         self.transient(parent)
 
+        # Establecer el ícono de la ventana emergente
+        import os
+        from processing.utils import resource_path
+        icon_path = resource_path(os.path.join("resources", "colibri.ico"))
+        self.iconbitmap(icon_path)
+
         container = ttk.Frame(self, padding=15)
         container.pack(fill='both', expand=True)
 
@@ -257,6 +275,12 @@ class CategoryDialog(tb.Toplevel):
         self.resizable(False, False)
         self.transient(parent)
         self.category = None  # Aquí se guardará la opción seleccionada
+
+        # Establecer el ícono de la ventana emergente
+        import os
+        from processing.utils import resource_path
+        icon_path = resource_path(os.path.join("resources", "colibri.ico"))
+        self.iconbitmap(icon_path)
 
         container = ttk.Frame(self, padding=15)
         container.pack(fill='both', expand=True)

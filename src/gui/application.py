@@ -10,6 +10,8 @@ from datetime import datetime
 import os
 from processing.utils import resource_path
 from gui.dialogs import UserLoginDialog, CategoryDialog
+from PIL import Image, ImageTk
+
 
 # Importar utilidades y procesadores
 from processing.utils import normalize_text, split_name
@@ -20,9 +22,15 @@ import tkinter.simpledialog as simpledialog
 class Application(tb.Window):
     def __init__(self, themename="yeti"):
         super().__init__(themename=themename)
-        self.title("🧹 Validador de Datos JD")
+        self.title("Colibrí VFV - Validador de Datos")
         self.geometry("1280x800")
         self.center_main_window()
+
+        # Establecer el ícono de la aplicación
+        import os
+        from processing.utils import resource_path
+        icon_path = resource_path(os.path.join("resources", "colibri.ico"))
+        self.iconbitmap(icon_path)
 
         # Variables de datos
         self.df_original = None
@@ -52,8 +60,14 @@ class Application(tb.Window):
         self.style.configure('Treeview', rowheight=25)
         self.style.map('Treeview', background=[('selected', '#007bff')])
         
+        # Forzar inicio de sesión antes de mostrar el menú principal
+        self.login_user()
+        if not self.logged_user:
+            self.destroy()
+            return
+        
         self.crear_main_menu()
-        self.after(100, self.login_user)
+        #self.after(100, self.login_user)
 
     def center_main_window(self):
         self.update_idletasks()
@@ -111,14 +125,15 @@ class Application(tb.Window):
     
 
     def login_user(self):
-        dialog = UserLoginDialog(self)
-        self.wait_window(dialog)
-        if not dialog.logged_user:
-            messagebox.showwarning("Advertencia", "Debe iniciar sesión para continuar.")
-            self.destroy()
+        from gui.dialogs import UserLoginDialog  # Asegúrate de que la importación sea correcta
+        login_dialog = UserLoginDialog(self)
+        self.wait_window(login_dialog)
+        # El diálogo de login debe asignar logged_user y logged_user_code
+        if login_dialog.logged_user:
+            self.logged_user = login_dialog.logged_user
+            self.logged_user_code = getattr(login_dialog, "logged_user_code", None)
         else:
-            self.logged_user = dialog.logged_user
-            self.logged_user_code = dialog.logged_user_code
+            messagebox.showwarning("Advertencia", "Debe iniciar sesión para continuar.")
     
     # Cargar y Procesar Excel
     def cargar_excel(self):
@@ -186,22 +201,39 @@ class Application(tb.Window):
     def crear_main_menu(self):
         self.menu_frame = ttk.Frame(self, padding=30)
         self.menu_frame.place(relx=0.5, rely=0.5, anchor='center')
+        
+        # Cargar y redimensionar el ícono
+        icon_path = resource_path(os.path.join("resources", "colibri.png"))
+        img = Image.open(icon_path)
+        # Modifica estos valores para ajustar el tamaño (por ejemplo, 100x100 píxeles)
+        img = img.resize((100, 100), Image.LANCZOS)
+        self.icon_img = ImageTk.PhotoImage(img)
+        
+        # Mostrar la imagen centrada sobre el título
+        icon_label = ttk.Label(self.menu_frame, image=self.icon_img)
+        icon_label.grid(row=0, column=0, pady=(0, 10))
+        
+        """
         title_label = ttk.Label(
             self.menu_frame,
-            text="Validador de Datos",
+            text="",
             font=("Helvetica", 30, "bold"),
             bootstyle="primary"
         )
-        title_label.grid(row=0, column=0, pady=(0,10))
+        title_label.grid(row=1, column=0, pady=(0,10))
+        """
+        
+        
         subtitle_label = ttk.Label(
             self.menu_frame,
             text="Seleccione el tipo de archivo a cargar",
             font=("Helvetica", 12),
             bootstyle="secondary"
         )
-        subtitle_label.grid(row=1, column=0, pady=(0,20))
+        subtitle_label.grid(row=2, column=0, pady=(0,20))
+        
         button_frame = ttk.Frame(self.menu_frame)
-        button_frame.grid(row=2, column=0, pady=(0,20))
+        button_frame.grid(row=3, column=0, pady=(0,20))
         
         # Botón para Falabella
         btn_load = ttk.Button(
@@ -213,7 +245,7 @@ class Application(tb.Window):
         )
         btn_load.grid(row=0, column=0, padx=10, pady=10)
         
-        # NUEVO: Botón para Mercado Libre
+        # Botón para Mercado Libre
         btn_ml = ttk.Button(
             button_frame,
             text="📂 Mercado Libre",
@@ -225,27 +257,68 @@ class Application(tb.Window):
         
         footer_label = ttk.Label(
             self.menu_frame,
-            text="v1.0.0 | © 2025 by Julián Lasprilla",
+            text="v1.1.0 | © 2025 by Julián Lasprilla",
             font=("Helvetica", 8),
             bootstyle="secondary"
         )
-        footer_label.grid(row=3, column=0, pady=(10,0))
+        footer_label.grid(row=4, column=0, pady=(10,0))
 
 
-    # Interfaz Principal: Cards y Treeview
     def inicializar_interfaz(self):
+        # Barra superior
         top_bar = ttk.Frame(self, padding=10)
         top_bar.pack(fill="x")
+        
+        # Contenedor izquierdo: Botón "Menú Principal" y etiqueta del archivo
+        left_frame = ttk.Frame(top_bar)
+        left_frame.pack(side="left")
+        
         ttk.Button(
-            top_bar,
+            left_frame,
             text="◀ Menú Principal",
             command=self.regresar_menu,
             bootstyle="light-outline"
         ).pack(side="left")
-        # Mostrar el nombre del archivo cargado
+        
+        # Label para el nombre del archivo cargado, al lado del botón
         if self.loaded_filename:
-            validando_label = ttk.Label(top_bar, text=f"Validando: {self.loaded_filename}", font=("Helvetica", 10), bootstyle="info")
-            validando_label.pack(side="left", padx=10)
+            file_text = f"Validando: {self.loaded_filename}"
+        else:
+            file_text = "Archivo: N/A"
+        file_label = ttk.Label(
+            left_frame,
+            text=file_text,
+            font=("Helvetica", 10),
+            bootstyle="primary"
+        )
+        file_label.pack(side="left", padx=(10,0))
+        
+        # Contenedor derecho: Información del usuario e ícono
+        right_frame = ttk.Frame(top_bar)
+        right_frame.pack(side="right")
+        
+        # Mostrar el nombre del usuario logueado
+        if self.logged_user:
+            user_label = ttk.Label(
+                right_frame,
+                text=f"Usuario: {self.logged_user}",
+                font=("Helvetica", 10),
+                bootstyle="primary"
+            )
+            user_label.grid(row=0, column=0, padx=(0,5), sticky="e")
+        
+        # Cargar y redimensionar el ícono
+        from PIL import Image, ImageTk
+        import os
+        from processing.utils import resource_path
+        icon_path = resource_path(os.path.join("resources", "colibri.png"))
+        img = Image.open(icon_path)
+        img = img.resize((50, 50), Image.LANCZOS)
+        self.top_icon = ImageTk.PhotoImage(img)
+        icon_label = ttk.Label(right_frame, image=self.top_icon)
+        icon_label.grid(row=0, column=1, padx=5)
+        
+        # Resto de la interfaz
         cards_container = ttk.Frame(self, padding=10)
         cards_container.pack(fill="x", padx=10, pady=5)
         # Card de Detalles
@@ -272,8 +345,8 @@ class Application(tb.Window):
         self.treeview = ttk.Treeview(
             self,
             columns=["National Registration Number", "Documento Val", "Shipping Name", "Customer Email",
-                     "Shipping Address", "Shipping City", "Shipping Region",
-                     "Tipo Documento", "Validado"],
+                    "Shipping Address", "Shipping City", "Shipping Region",
+                    "Tipo Documento", "Validado"],
             show="headings",
             selectmode="browse",
             bootstyle="secondary",
@@ -328,6 +401,9 @@ class Application(tb.Window):
                 width=15
             ).pack(side="left", padx=5)
         self.refrescar_treeview()
+
+
+
 
     def mostrar_barra_busqueda(self):
         self.search_frame = ttk.Frame(self, padding=10)
