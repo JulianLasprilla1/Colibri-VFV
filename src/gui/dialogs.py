@@ -249,3 +249,69 @@ class UserRegistrationDialog(tk.Toplevel):
             self.destroy()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el usuario: {e}")
+
+class CategoryDialog(tb.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Seleccione Categoría")
+        self.resizable(False, False)
+        self.transient(parent)
+        self.category = None  # Aquí se guardará la opción seleccionada
+
+        container = ttk.Frame(self, padding=15)
+        container.pack(fill='both', expand=True)
+
+        lbl_instruction = ttk.Label(
+            container,
+            text="Seleccione la categoría:",
+            font=("Helvetica", 10),
+            bootstyle="inverse-light"
+        )
+        lbl_instruction.pack(pady=5)
+
+        # Combobox para las opciones de categoría
+        self.category_var = tk.StringVar()
+        options = [
+            "Falabella",
+            "Falabella Fulfillment",
+            "Mercado Libre",
+            "Mercado Libre Full"
+        ]
+        self.combobox = ttk.Combobox(container, textvariable=self.category_var, values=options, state="readonly", font=("Helvetica", 10))
+        self.combobox.pack(pady=10)
+        self.combobox.current(0)
+
+        btn_frame = ttk.Frame(container)
+        btn_frame.pack(pady=5)
+        ttk.Button(
+            btn_frame,
+            text="Confirmar",
+            command=self.on_ok,
+            bootstyle="success",
+            width=12
+        ).pack(side='left', padx=5)
+        ttk.Button(
+            btn_frame,
+            text="Cancelar",
+            command=self.on_close,
+            bootstyle="danger-outline",
+            width=12
+        ).pack(side='left', padx=5)
+
+        self.center_window(parent)
+
+    def center_window(self, parent):
+        parent.update_idletasks()
+        width = 400
+        height = 200
+        x = parent.winfo_rootx() + (parent.winfo_width() - width) // 2
+        y = parent.winfo_rooty() + (parent.winfo_height() - height) // 2
+        self.geometry(f"{width}x{height}+{x}+{y}")
+
+    def on_ok(self):
+        self.category = self.category_var.get()
+        self.destroy()
+
+    def on_close(self):
+        self.category = None
+        self.destroy()

@@ -9,12 +9,13 @@ import webbrowser
 from datetime import datetime
 import os
 from processing.utils import resource_path
-from gui.dialogs import UserLoginDialog
+from gui.dialogs import UserLoginDialog, CategoryDialog
 
 # Importar utilidades y procesadores
 from processing.utils import normalize_text, split_name
 from processing.file_cleaner import FalabellaCleaner
 from gui.dialogs import NameDialog
+import tkinter.simpledialog as simpledialog
 
 class Application(tb.Window):
     def __init__(self, themename="yeti"):
@@ -585,8 +586,17 @@ class Application(tb.Window):
         if (self.df_work["Validado"].str.upper() != "SI").any():
             messagebox.showwarning("Advertencia", "No se puede guardar el archivo final sin que todos los registros estén validados.")
             return
-
-        default_file_name = f"terceros_full_falabella_{self.logged_user}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        dialog = CategoryDialog(self)
+        self.wait_window(dialog)
+        categoria = dialog.category
+        if not categoria:
+            messagebox.showwarning("Advertencia", "Debe seleccionar una categoría.")
+            return
+        # Usa 'categoria' para formar el nombre del archivo, por ejemplo:
+        from datetime import datetime
+        now = datetime.now()
+        default_file_name = f"Terceros_{categoria.strip().replace(' ', '_').lower()}_{self.logged_user}_{now.strftime('%Y%m%d')}_{now.strftime('%H%M')}.xlsx"
+                
         ruta_guardado = filedialog.asksaveasfilename(
             initialfile=default_file_name,
             defaultextension=".xlsx",
