@@ -3,9 +3,12 @@
 
 a = Analysis(
     ['src\\main.py'],
-    pathex=[],
+    pathex=[os.path.abspath("src")],
     binaries=[],
-    datas=[],
+    datas=[('resources\\colibri.ico', 'resources'),(os.path.join("resources", "codigos_municipios", "codigos_departamentos.xlsx"), os.path.join("resources", "codigos_municipios")),
+    (os.path.join("resources", "codigos_municipios", "codigos_municipios_dian.xlsx"), os.path.join("resources", "codigos_municipios")),
+    (os.path.join("resources", "users", "users.xlsx"), os.path.join("resources", "users")),
+    (os.path.join("resources", "colibri.png"), "resources")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,4 +38,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='resources\\colibri.ico' 
+
 )
